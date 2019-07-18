@@ -1,7 +1,7 @@
 /* *****************************************************************************
- *  Name:
- *  Date:
- *  Description:
+ *  Name: Chen Wahng
+ *  Date: July 18, 2019
+ *  Description: solution to the assignment Collinear Points
  **************************************************************************** */
 
 import java.util.ArrayList;
@@ -9,57 +9,82 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Detect collinear 2D points with >= 4 size through the brute force way
+ * Detect groups of collinear points with size larger than 4 through a faster algorithm
  */
-public class BruteCollinearPoints {
+public class FastCollinearPoints {
     private final List<LineSegment> lineSegments;
 
     /**
-     * constructor to detect all groups of collinear points with size larger than 4
+     * constructor to detect all collinear points
      *
-     * @param points: input array of Point
+     * @param points input Point array
      * @throws IllegalArgumentException input array not valid
      */
-    public BruteCollinearPoints(Point[] points) {
-        if (points == null) throw new IllegalArgumentException();
-        Point[] partner = new Point[points.length];
-        if (!validInput(points, partner)) throw new IllegalArgumentException();
-        // Arraylist to store outputs
-        lineSegments = new ArrayList<>();
-        int N = partner.length;
-        if (N < 4)
-            return;
-        // Bruteforce
-        double slopeij;
-        for (int i = 0; i < N; ++i) {
-            for (int j = i + 1; j < N; ++j) {
-                for (int m = j + 1; m < N; ++m) {
-                    for (int n = m + 1; n < N; ++n) {
-                        slopeij = partner[i].slopeTo(partner[j]);
-                        if (slopeij != partner[i].slopeTo(partner[m])) continue;
-                        if (slopeij == partner[i].slopeTo(partner[n]))
-                            // in all test cases for BruteCollinearPoints,
-                            // it's guaranteed that no more than 4 colinear points
-                            lineSegments.add(new LineSegment(partner[i], partner[n]));
+    public FastCollinearPoints(Point[] points) {
+        if (!validInput(points)) throw new IllegalArgumentException();
+        // arraylist to store outputs
+        lineSegments = new ArrayList<LineSegment>();
+        int N = points.length;
+        if (N < 4) return;
+        Point[] partner = new Point[N - 1];
+        for (int i = 0; i < points.length; ++i) {
+            // copy and sort all other points in slope order
+            int index = 0;
+            for (Point point : points) {
+                if (points[i] == point) continue;
+                partner[index++] = point;
+            }
+            // find colinear points
+            Arrays.sort(partner, points[i].slopeOrder());
+            index = 0;
+            int count = 1;
+            double current = points[i].slopeTo(partner[index++]);
+            double update;
+            Point[] temp;
+            while (index < N - 1) {
+                update = points[i].slopeTo(partner[index]);
+                if (current == update)
+                    count++;
+                else {
+                    if (count > 2) {
+                        temp = Arrays.copyOfRange(partner, index - count, index);
+                        Arrays.sort(temp);
+                        if (points[i].compareTo(temp[0]) < 0)
+                            lineSegments.add(new LineSegment(points[i],
+                                                             temp[count - 1]));
                     }
+                    current = update;
+                    count = 1;
                 }
+                index++;
+            }
+            if (count > 2) {
+                temp = Arrays.copyOfRange(partner, index - count, index);
+                Arrays.sort(temp);
+                if (points[i].compareTo(temp[0]) < 0)
+                    lineSegments.add(new LineSegment(points[i],
+                                                     temp[count - 1]));
             }
         }
     }
 
     /**
-     * helper method to validate the input Point array
+     * helper method to validate the input
      *
-     * @param points  input Point array
-     * @param partner auxiliary array to keep {@param points} immute
-     * @return whether it's valid
+     * @param points input Point array
+     * @return whether the input array is valid
      */
-    private boolean validInput(Point[] points, Point[] partner) {
-        // check null point or duplicate points
+    private boolean validInput(Point[] points) {
+        // check null input
+        if (points == null)
+            return false;
+        // check null point
+        Point[] partner = new Point[points.length];
         for (int i = 0; i < points.length; ++i) {
             if (points[i] == null) return false;
             partner[i] = points[i];
         }
+        // check duplicate points
         Arrays.sort(partner);
         for (int i = 1; i < partner.length; ++i)
             if (partner[i].compareTo(partner[i - 1]) == 0)
@@ -77,18 +102,16 @@ public class BruteCollinearPoints {
     }
 
     /**
-     * get the line segments
+     * get the array of segments
      *
-     * @return the array of line segments
+     * @return the array of segments
      */
     public LineSegment[] segments() {
         return lineSegments.toArray(new LineSegment[0]);
     }
 
     /**
-     * main method to do unit test
-     *
-     * @param args command line arguments
+     * main method for unit test
      */
     public static void main(String[] args) {
         // do unit test here
